@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letter Name Tracer</title>
+    <style>
+        body {
+            font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #e0f7fa;
+            margin: 0;
+            touch-action: none;
+        }
+        h1 { color: #00796b; margin-top: 20px; }
+        #game-container {
+            position: relative;
+            background: white;
+            border: 10px solid #4db6ac;
+            border-radius: 30px;
+            box-shadow: 0 10px 0 #00897b;
+        }
+        canvas {
+            cursor: crosshair;
+            border-radius: 20px;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+        button {
+            padding: 15px 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 50px;
+            background-color: #00acc1;
+            color: white;
+            box-shadow: 0 5px 0 #00838f;
+            transition: all 0.1s;
+        }
+        button:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #00838f;
+        }
+        #message {
+            margin-top: 15px;
+            font-size: 1.6rem;
+            color: #00796b;
+            height: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Trace the Letter!</h1>
+    
+    <div id="game-container">
+        <canvas id="paintCanvas" width="400" height="400"></canvas>
+    </div>
+
+    <div id="message"></div>
+
+    <div class="controls">
+        <button onclick="clearCanvas()" style="background-color: #ff5252; box-shadow: 0 5px 0 #d32f2f;">Reset</button>
+        <button onclick="speakLetterName()">Hear Name 🔊</button>
+        <button onclick="nextLetter()" style="background-color: #4caf50; box-shadow: 0 5px 0 #388e3c;">Next Letter ➔</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('paintCanvas');
+        const ctx = canvas.getContext('2d');
+        const msg = document.getElementById('message');
+        
+        let isDrawing = false;
+        let hasSpoken = false; 
+        let letters = ['A', 'b', 'C', 'd', 'E', 'f', 'G', 'h'];
+        let currentIdx = 0;
+
+        function init() {
+            drawLetterGuide();
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            window.addEventListener('mouseup', stopDrawing);
+            
+            // Touch Support
+            canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e.touches[0]); });
+            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function speakLetterName() {
+            const char = letters[currentIdx];
+            const isUpper = char === char.toUpperCase() && char !== char.toLowerCase();
+            const type = isUpper ? "Uppercase" : "Lowercase";
+            
+            // Special handling for letters that might sound ambiguous 
+            // e.g., 'A' is just 'A', but saying "Uppercase A" is clearer for learning.
+            const utterance = new SpeechSynthesisUtterance(`${type} ${char}`);
+            utterance.rate = 0.85; 
+            utterance.pitch = 1.1; 
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function drawLetterGuide() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "bold 320px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#f1f1f1";
+            ctx.fillText(letters[currentIdx], canvas.width/2, canvas.height/2 + 20);
+            
+            ctx.strokeStyle = "#e0e0e0";
+            ctx.lineWidth = 4;
+            ctx.setLineDash([15, 15]);
+            ctx.strokeText(letters[currentIdx], canvas.width/2, canvas.height/2 + 20);
+            ctx.setLineDash([]);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            if (!hasSpoken) {
+                speakLetterName();
+                hasSpoken = true;
+            }
+            ctx.beginPath();
+            ctx.moveTo(getX(e), getY(e));
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            ctx.lineTo(getX(e), getY(e));
+            ctx.strokeStyle = "#00796b"; 
+            ctx.lineWidth = 24;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.stroke();
+            msg.innerText = "Tracing " + letters[currentIdx] + "...";
+        }
+
+        function stopDrawing() { isDrawing = false; }
+
+        function getX(e) {
+            const rect = canvas.getBoundingClientRect();
+            return (e.clientX || e.pageX) - rect.left;
+        }
+
+        function getY(e) {
+            const rect = canvas.getBoundingClientRect();
+            return (e.clientY || e.pageY) - rect.top;
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawLetterGuide();
+            msg.innerText = "";
+        }
+
+        function nextLetter() {
+            currentIdx = (currentIdx + 1) % letters.length;
+            hasSpoken = false; 
+            clearCanvas();
+        }
+
+        init();
+    </script>
+</body>
+</html>
